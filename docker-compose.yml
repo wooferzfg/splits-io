@@ -92,7 +92,7 @@ services:
       - 3000:3000
   worker:
     <<: *backend
-    command: bash -c "rm -f /app/tmp/pids/delayed*.pid && bundle exec rails db:migrate && bundle exec rake jobs:work"
+    command: bash -c "rm -f /app/tmp/pids/delayed*.pid && bundle exec rake jobs:work"
     environment: *server-environment
     logging: *default-logging
   redis:
