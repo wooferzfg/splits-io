@@ -1,26 +1,21 @@
-ARG RUBY_VERSION
-FROM ruby:$RUBY_VERSION-alpine
-
-# Build base for gem's native extensions
-# tzdata for ruby timezone data
-# gcompat for ffi to load LSC
-RUN echo "http://dl-4.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories \
-    && apk update \
-    && apk add -u --no-cache build-base vips-dev tzdata gcompat=0.4.0-r0 git postgresql-dev bash yarn less \
-    && rm -rf /var/cache/apk/*
-
-ENV LANG C.UTF-8
-ENV GEM_HOME /bundle
-ENV BUNDLE_PATH $GEM_HOME
-ENV BUNDLE_APP_CONFIG $BUNDLE_PATH
-ENV BUNDLE_BIN $BUNDLE_PATH/bin
-# Add bundle dir to path to be able to access commands outside of `bundle exec`
-ENV PATH /app/bin:$BUNDLE_BIN:$PATH
-
-RUN gem update --system
-
-RUN mkdir -p /app
+FROM ruby
+RUN apt-get update -qq && apt-get install -y build-essential libpq-dev nodejs
+RUN mkdir /app
 WORKDIR /app
+COPY Gemfile /app/Gemfile
+COPY Gemfile.lock /app/Gemfile.lock
 
-COPY package.json yarn.lock ./
-RUN yarn install
+# Node (required for Yarn)
+RUN apt-get install -qq -y nodejs
+
+# Yarn
+RUN curl -sL https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
+RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
+RUN apt-get update
+RUN apt-get install -qq -y --no-install-recommends yarn
+
+RUN bundle install
+
+COPY . /app
+
+RUN yarn install --check-files

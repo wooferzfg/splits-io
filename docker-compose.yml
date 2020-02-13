@@ -39,14 +39,7 @@ x-logging:
     max-size: 1m
     max-file: "1"
 x-app: &app
-  build:
-    context: .
-    dockerfile: Dockerfile
-    cache_from:
-      - "${REPOSITORY_URI:-splitsio-dev}:latest"
-    args:
-      RUBY_VERSION: '2.7.0' # also update docker-compose-production.yml & Gemfile
-  image: splitsio-dev
+  image: glacials/splitsio
   tmpfs:
     - /tmp
 x-backend: &backend
@@ -55,8 +48,7 @@ x-backend: &backend
   tty: true
   volumes:
     - .:/app
-    - ./bundle:/bundle
-    - ./node_modules:/app/node_modules
+    - node_modules:/app/node_modules
     - packs:/app/public/packs
     - rails_cache:/app/tmp/cache
   links:
@@ -68,7 +60,7 @@ x-backend: &backend
 
 services:
   db:
-    image: postgres:11.5-alpine
+    image: postgres:11
     logging: *default-logging
     volumes:
       - ./db/init.sql:/docker-entrypoint-initdb.d/10-init.sql
@@ -89,29 +81,29 @@ services:
       - 3035:3035
     volumes:
       - .:/app
-      - ./bundle:/bundle
       - packs:/app/public/packs
       - rails_cache:/app/tmp/cache
   web:
     <<: *backend
-    command: bash -c "rm -f /app/tmp/pids/server.pid && bundle exec rails s -p 3000 -b '0.0.0.0'"
+    command: bash -c "rm -f /app/tmp/pids/server.pid && bundle exec rails db:migrate && bundle exec rails s -p 3000 -b '0.0.0.0'"
     environment: *server-environment
     logging: *default-logging
     ports:
       - 3000:3000
   worker:
     <<: *backend
-    command: bash -c "rm -f /app/tmp/pids/delayed*.pid && bundle exec rake jobs:work"
+    command: bash -c "rm -f /app/tmp/pids/delayed*.pid && bundle exec rails db:migrate && bundle exec rake jobs:work"
     environment: *server-environment
     logging: *default-logging
   redis:
-    image: redis:5.0.5-alpine
+    image: redis
     logging: *default-logging
     volumes:
       - redis:/data
 
 volumes:
   db:
+  node_modules:
   packs:
   rails_cache:
   redis:
