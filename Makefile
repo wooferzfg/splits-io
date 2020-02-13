@@ -18,10 +18,9 @@ endif
 container ?= web
 
 build:
-	$(docker-compose) build web
-	$(docker-compose) run --rm web bash -c 'bundle install --jobs $$((`nproc` - 1)) && yarn install && rails db:migrate && skylight disable_dev_warning'
-	@[ -e tmp/seed ] || make seed
-	$(docker-compose) stop
+	@echo "make build has changed. You should only need to run this if the Dockerfile has changed, or if dependencies (Gemfile/package.json) have changed.
+	@echo "Once you run, remember to push the image with docker push glacials/splitsio"
+	docker build . --tag glacials/splitsio
 
 seed:
 	$(docker-compose) run --rm web bash -c "bundle exec rails db:seed"
